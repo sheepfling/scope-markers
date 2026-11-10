@@ -1,6 +1,6 @@
 # Scope Markers
 
-[![Python 3.11-3.14][python-badge]][python]
+[![Python 3.11-3.15][python-badge]][python]
 [![Runtime dependencies: none][deps-badge]][pyproject]
 
 **Explicit visual endings for Python's indented compound statements.**
@@ -852,7 +852,7 @@ fences. It does not replace the surrounding toolchain.
 | Normal Python wrapping, spacing, and quoting | Ruff format or Black |
 | Marker selection and canonical placement | Scope Markers |
 | Optional logical block indentation | Scope Markers `--indent-width` |
-| Python diagnostics and type checking | Ruff, Flake8, Pyright, or similar tools |
+| Python diagnostics and type checking | Ruff and Pyright |
 | Markdown structure and prose style | rumdl or another Markdown checker |
 
 ## Development
@@ -876,9 +876,17 @@ python -m pip install -e ".[dev]"
 python -m scripts.ci
 ```
 
-The CI orchestrator runs the regression suite, diff-contract checks, Ruff, Flake8, Black
+The CI orchestrator runs the regression suite, diff-contract checks, Ruff, Black
 compatibility checks, strict Pyright, package-build validation, Scope Markers' self-check,
-and rumdl. GitHub Actions validates Python 3.11 through 3.14 on Linux and Windows.
+and rumdl. GitHub Actions runs the same checks on Python 3.11 and 3.15 on Linux and Windows,
+matching MDREPO's oldest/newest-version matrix. Intermediate Python versions remain
+supported; run the same local command in each interpreter environment for broader
+coverage. Pull requests and pushes to `main` run automatically; other branches can
+use the manual workflow. Superseded runs are cancelled.
+
+Ruff is the lint checker and strict Pyright is the type checker. Black remains a
+formatter-compatibility smoke test on temporary marker-free copies, not a second
+lint or type-check gate.
 
 Package versions are derived with `setuptools-scm`: a release tag such as `v0.1.0` becomes
 package version `0.1.0`, while untagged checkouts receive a PEP 440 development version.
@@ -887,5 +895,5 @@ See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 [deps-badge]: https://img.shields.io/badge/runtime%20dependencies-none-success
 [pyproject]: pyproject.toml
-[python-badge]: https://img.shields.io/badge/Python-3.11--3.14-3776AB?logo=python&logoColor=white
+[python-badge]: https://img.shields.io/badge/Python-3.11--3.15-3776AB?logo=python&logoColor=white
 [python]: https://www.python.org/

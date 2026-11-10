@@ -37,7 +37,6 @@ def ci_commands(
         (python, "-m", "pytest", "-q"),
         (python, "-m", "scripts.check_diff"),
         ruff,
-        (python, "-m", "flake8", "src", "scripts", "tests"),
         (python, "-m", "scripts.check_black"),
         (python, "-m", "scripts.check_pyright"),
         (python, "-m", "scripts.check_build"),

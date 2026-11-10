@@ -867,7 +867,6 @@ def test_ci_command_list_is_explicit_and_uses_the_requested_python() -> None:
         ("python311", "-m", "pytest", "-q"),
         ("python311", "-m", "scripts.check_diff"),
         ("python311", "-m", "ruff", "check", "src", "scripts", "tests"),
-        ("python311", "-m", "flake8", "src", "scripts", "tests"),
         ("python311", "-m", "scripts.check_black"),
         ("python311", "-m", "scripts.check_pyright"),
         ("python311", "-m", "scripts.check_build"),
@@ -924,7 +923,6 @@ def test_ci_fix_mode_adds_safe_formatter_fix_flags() -> None:
             "scripts",
             "tests",
         ),
-        ("python311", "-m", "flake8", "src", "scripts", "tests"),
         ("python311", "-m", "scripts.check_black"),
         ("python311", "-m", "scripts.check_pyright"),
         ("python311", "-m", "scripts.check_build"),
@@ -1055,7 +1053,7 @@ def test_ci_main_stops_and_returns_the_first_failure(monkeypatch: pytest.MonkeyP
 ####
 
 
-def test_flake8_configuration_allows_marker_and_black_compatible_syntax(
+def test_ruff_configuration_allows_markers_and_catches_undefined_names(
         tmp_path: Path,
 ) -> None:
     source = (
@@ -1067,28 +1065,18 @@ def test_flake8_configuration_allows_marker_and_black_compatible_syntax(
     )
     path = tmp_path / "marked.py"
     path.write_text(source, encoding="utf-8")
-    command = [sys.executable, "-m", "flake8", str(path)]
     project_root = Path(__file__).resolve().parents[1]
-
-    configured = subprocess.run(
-        command,
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    isolated = subprocess.run(
-        [*command[:3], "--isolated", *command[3:]],
-        cwd=project_root,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
+    command = [
+        sys.executable, "-m", "ruff", "check",
+        "--config", str(project_root / "pyproject.toml"), str(path),
+    ]
+    configured = subprocess.run(command, capture_output=True, text=True, check=False)
     assert configured.returncode == 0, configured.stdout + configured.stderr
-    assert isolated.returncode != 0
-    assert "E203" in isolated.stdout or "E203" in isolated.stderr
-    assert "E302" in isolated.stdout or "E302" in isolated.stderr
+
+    path.write_text(source.replace("return values[1 : 2]", "return missing"), encoding="utf-8")
+    invalid = subprocess.run(command, capture_output=True, text=True, check=False)
+    assert invalid.returncode != 0
+    assert "F821" in invalid.stdout + invalid.stderr
 ####
 
 
