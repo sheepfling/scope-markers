@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add Python 3.15 to the Linux/Windows CI matrix, using oldest/newest lanes.
+- Remove redundant Flake8 tooling; retain Ruff lint and strict Pyright checks.
+- Avoid duplicate branch/PR runs and cancel superseded CI runs.
+
 ## 0.1.0
 
 - Covers every compound-statement family in the Python 3.11–3.14 grammar.
