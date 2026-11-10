@@ -685,14 +685,51 @@ Ruff format, Black, YAPF, and editor formatters treat `####` as an ordinary comm
 may move surrounding code or normalize whitespace without restoring the marker policy.
 Run Scope Markers again whenever another tool rewrites marker-managed Python.
 
-Flake8 can run after marker insertion, but its spacing rules need to account for the
-standalone comments. This repository uses a 100-character limit and ignores `E203`,
-`E302`, and `E303`.
+Ruff supplies this repository's lint checks; strict Pyright supplies type checks.
+Read-only linting after marker insertion is safe. Rewriting formatters are different: they
+interpret markers as ordinary comments, not structural boundaries.
+
+### Repeatable Ruff composition
+
+Ruff formatting and Scope Markers do not commute. Running `ruff format` after marker
+insertion can move comments and add spacing; running another marker pass does not promise
+to undo Ruff's whitespace changes. Do not alternate independent format-on-save actions.
+
+For projects using the default `####` style, use this complete normalization sequence:
+
+```bash
+scope-markers --strip --fix src tests
+ruff check --fix src tests
+ruff format src tests
+scope-markers --fix src tests
+scope-markers src tests
+ruff check src tests
+```
+
+Strip first even when files are already marked. Review the diff before committing.
+If a step fails, stop and fix it before continuing; do not continue with a partial run.
+Configure one ordered editor task instead of two racing save hooks. Run `ruff format
+--check` on marker-free copies, not on the final marked files.
+
+Stripping discards the remembered marker width: regeneration uses `####`. Do not use this
+recipe unchanged to preserve a legacy `##` or `###` convention. Stripping also removes
+markers from Python files with a file-level opt-out; regeneration honors the opt-out and
+will not restore them. Exclude such files from the whole normalization task if their
+contents must remain untouched. Do not remove directives to force normalization. Markdown
+fences need their own Python formatter step before `scope-markers --markdown`.
+
+The regression suite exercises the default-style formatting core (strip, isolated Ruff
+format, regenerate) twice and requires byte-identical output, including recovery after a
+trailing Ruff pass, while retaining AST equivalence. It does not cover every lint auto-fix,
+CLI discovery policy, or project configuration, or claim arbitrary formatters commute.
 
 ### Pre-commit
 
-Place rewriting hooks before Scope Markers and read-only hooks after it. Separate hooks
-make the Python and Markdown file types explicit:
+Run the complete normalization task above before pre-commit. Do not put marker stripping
+and regeneration in separate hooks: pre-commit checks changes after each hook, so they
+would repeatedly report modifications even when their combined result is unchanged.
+The hooks below check markers and lint without rewriting; formatting belongs in the
+single ordered task. Python and Markdown file types remain separate:
 
 ```yaml
 repos:
@@ -700,20 +737,18 @@ repos:
     rev: <your-ruff-version>
     hooks:
       - id: ruff-check
-        args: [--fix]
-      - id: ruff-format
 
   - repo: local
     hooks:
       - id: scope-markers-python
         name: scope markers — Python
-        entry: scope-markers --fix
+        entry: scope-markers
         language: system
         types: [python]
 
       - id: scope-markers-markdown
         name: scope markers — Markdown fences
-        entry: scope-markers --markdown --fix
+        entry: scope-markers --markdown
         language: system
         types: [markdown]
 ```
@@ -792,9 +827,10 @@ expression-level scopes have no closing statement line and are not candidates.
 
 ## Marker style and stripping
 
-The formatter recognizes exact standalone `##` and `####` comments. A file that already
-uses one style keeps it. Files with no managed markers default to `####`. A file containing
-both standalone styles fails instead of forcing an ambiguous choice.
+The formatter recognizes standalone runs of two or more hash characters, including `##`,
+`###`, and `####`. A file that already uses one style keeps it. Files with no managed
+markers default to `####`. A file containing multiple standalone styles fails instead of
+forcing an ambiguous choice.
 
 `--strip` removes only recognized standalone marker lines:
 
@@ -888,8 +924,11 @@ Ruff is the lint checker and strict Pyright is the type checker. Black remains a
 formatter-compatibility smoke test on temporary marker-free copies, not a second
 lint or type-check gate.
 
-Package versions are derived with `setuptools-scm`: a release tag such as `v0.1.0` becomes
-package version `0.1.0`, while untagged checkouts receive a PEP 440 development version.
+Version `0.0.1` is an early final release, not a mature 1.x compatibility promise. Public
+API changes before 1.0 will be documented; pin the version if exact behavior matters.
+
+Package versions are derived with `setuptools-scm`: a release tag such as `v0.0.1` becomes
+package version `0.0.1`, while untagged checkouts receive a PEP 440 development version.
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 

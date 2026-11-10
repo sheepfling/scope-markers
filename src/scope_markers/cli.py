@@ -46,6 +46,10 @@ _EPILOG = """examples:
   scope-markers --strip --fix src tests
   scope-markers --markdown --fix README.md
 
+Run rewriting formatters before marker insertion. For a repeatable default-style
+pipeline: strip markers, run Ruff fixes/formatting, then regenerate markers.
+Stripping resets custom marker widths to the default ####.
+
 Use --help with a command installed as either `scope-markers` or
 `python -m scope_markers`."""
 
